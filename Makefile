@@ -1,5 +1,5 @@
 SHELL:=/bin/bash
-REQUIRED_BINARIES := ytt yq jq hauler helm
+REQUIRED_BINARIES := ytt yq hauler helm
 WORKING_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 SCRIPT_DIR := ${WORKING_DIR}/scripts
 
