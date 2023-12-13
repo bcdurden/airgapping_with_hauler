@@ -9,7 +9,7 @@ For a deeper dive into `Hauler`, check the [docs](https://rancherfederal.github.
 * make
 * helm
 
-To install `Hauler` use `make install`. For the sake of `yq`, it only installs the linux version currently but can easily be edited to pull the darwin binary if using MacOS.
+To install `Hauler` and other dependencies, use `make install`. For the sake of `yq`, it only installs the linux version currently but can easily be edited to pull the darwin binary if using MacOS.
 
 # Pull
 The Makefile builds a manifest which is fed into `Hauler` which pulls everything down into the local store. Under hood it uses ytt templating and yq to generate a manifest. After this it will export the images into a zst archive at the location of your choosing. To do this, use `make pull`.
