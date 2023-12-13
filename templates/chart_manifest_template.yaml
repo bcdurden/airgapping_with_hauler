@@ -1,0 +1,21 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:yaml", "yaml")
+---
+apiVersion: content.hauler.cattle.io/v1alpha1
+kind: Charts
+metadata:
+  name: hauler-charts
+spec:
+  charts:
+    - name: cert-manager
+      repoURL: https://charts.jetstack.io
+      version: #@ data.values.cert_manager_version
+    - name: rancher
+      repoURL: https://releases.rancher.com/server-charts/latest
+      version: #@ data.values.rancher_version
+    #@ charts = data.values.charts
+    #@ for chart in charts:
+    - name: #@ chart.name
+      repoURL: #@ chart.repo_url
+      version: #@ chart.version
+    #@ end
