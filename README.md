@@ -21,7 +21,7 @@ Copy the archive into your airgap and then install `Hauler` within the airgap. Y
 
 First sync the image archive into your local store. This can take some time;
 ```console
-> hauler store sync -f myarchive.tar.zst
+> hauler store load -f myarchive.tar.zst
 ```
 
 Then copy the local store to a remote registry. Be aware that you will need to have signed into the remote registry using `cosign`.
