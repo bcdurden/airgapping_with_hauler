@@ -17,8 +17,8 @@ install:
 	@sudo ${SCRIPT_DIR}/install.sh HAULER_VERSION=0.4.1-rc.2
 	@wget https://github.com/mikefarah/yq/releases/download/v4.30.1/yq_linux_amd64 \
 		sudo install yq_linux_amd64 /usr/local/bin/yq; rm yq_linux_amd64
-	@wget -O- https://carvel.dev/install.sh > install.sh
-	@sudo bash install.sh; rm install.sh
+	@wget -O- https://carvel.dev/install.sh > install.sh \
+		sudo bash install.sh; rm install.sh
 
 pull: check-tools
 	$(call colorecho, "===>Pulling all Dependent Images via Hauler", 5)
