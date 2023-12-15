@@ -7,6 +7,9 @@ SCRIPT_DIR := ${WORKING_DIR}/scripts
 CONFIG_FILE := ${WORKING_DIR}/config.yaml
 RANCHER_VERSION := $(shell yq '.rancher_version' ${CONFIG_FILE})
 CERT_MANAGER_VERSION := $(shell yq '.cert_manager_version' ${CONFIG_FILE})
+HARBOR_CHART_VERSION := $(shell yq '.harbor.chart_version' ${CONFIG_FILE})
+HARBOR_URL := $(shell yq '.harbor.core_url' ${CONFIG_FILE})
+NOTARY_URL := $(shell yq '.harbor.notary_url' ${CONFIG_FILE})
 
 check-tools: ## Check to make sure you have the right tools
 	$(foreach exec,$(REQUIRED_BINARIES),\
@@ -30,8 +33,9 @@ pull: check-tools
 	@rm ${WORKING_DIR}/images.txte || true
 
 	@helm repo add jetstack https://charts.jetstack.io &> /dev/null && helm repo update &> /dev/null
-	@helm template jetstack/cert-manager --version=$(CERT_MANAGER_VERSION) | grep 'image:' | sed 's/"//g' | awk '{ print $$2 }' >> ${WORKING_DIR}/filtered_images.txt
+	@helm template jetstack/cert-manager --version=$(CERT_MANAGER_VERSION) | grep 'image:' | sed 's/"//g'  | awk '{ print $$2 }' >> ${WORKING_DIR}/filtered_images.txt
 
+	@helm template harbor/harbor-$(HARBOR_CHART_VERSION).tgz | grep 'image:' | sed 's/"//g' | tr -d ' ' | sed 's/image://g' | awk '{ print $2 }' >> ${WORKING_DIR}/filtered_images.txt
 	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat ${WORKING_DIR}/filtered_images.txt)" > ${WORKING_DIR}/images.yaml
 
 	@echo -e "#@data/values\n---\n" > ${WORKING_DIR}/charts_values.yaml
@@ -45,7 +49,19 @@ pull: check-tools
 	@hauler store sync -f ${WORKING_DIR}/manifest.yaml
 	@rm ${WORKING_DIR}/images.yaml ${WORKING_DIR}/charts.yaml ${WORKING_DIR}/charts_values.yaml ${WORKING_DIR}/filtered_images.txt ${WORKING_DIR}/manifest.yaml || true
 
-	@hauler store save -f $(shell yq e '.hauler_store_path' ${CONFIG_FILE})/hauler-images-$(RANCHER_VERSION).tar.zst
+	@hauler store save -s $(shell yq e '.hauler.store_path' ${CONFIG_FILE}) -f $(shell yq e '.hauler.archive_path' ${CONFIG_FILE})
+
+serve: check-tools
+	$(call colorecho, "===>Loading Hauler and serving", 5)
+	hauler store load --cache $(shell yq e '.hauler.store_path' ${CONFIG_FILE}) $(shell yq e '.hauler.archive_path' ${CONFIG_FILE})
+	hauler store serve -d
+
+harbor: check-tools
+	$(call colorecho, "===>Installing Harbor into Harvester", 5)
+	sed 's/goharbor/$(shell yq e '.hauler.host' ${CONFIG_FILE}):5000\/goharbor/g' ${WORKING_DIR}/harbor/values.yaml | \
+	yq '.externalURL = "https://$(HARBOR_URL)"' | yq '.expose.ingress.hosts.core = "$(HARBOR_URL)"' | yq '.expose.ingress.hosts.notary = "$(HARBOR_URL)"' | \
+	helm upgrade --install oci://localhost:5000/hauler/harbor:$(HARBOR_CHART_VERSION) -n harbor --values - --create-namespace --wait
+
 
 define colorecho
 @tput setaf $2
