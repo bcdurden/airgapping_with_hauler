@@ -36,6 +36,15 @@ trivy:
     repository: goharbor/trivy-adapter-photon
     # tag the tag for Trivy adapter image
     tag: v2.9.0
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: harbor-cache
+            operator: In
+            values:
+            - "true"   
 
 
 # If using an external Postgres DB
@@ -45,6 +54,15 @@ database:
     image:
       repository: goharbor/harbor-db
       tag: v2.9.0
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: harbor-cache
+            operator: In
+            values:
+            - "true"   
 
 #   external:
 #     host: "postgres.example.com"
@@ -63,32 +81,104 @@ redis:
     image:
       repository: goharbor/redis-photon
       tag: v2.9.0
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: harbor-cache
+            operator: In
+            values:
+            - "true"   
 exporter:
   image:
     repository: goharbor/harbor-exporter
     tag: v2.9.0
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: harbor-cache
+            operator: In
+            values:
+            - "true"   
 portal:
   image:
     repository: goharbor/harbor-portal
     tag: v2.9.0
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: harbor-cache
+            operator: In
+            values:
+            - "true"   
 core:
   image:
     repository: goharbor/harbor-core
     tag: v2.9.0
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: harbor-cache
+            operator: In
+            values:
+            - "true"   
 jobservice:
   image:
     repository: goharbor/harbor-jobservice
     tag: v2.9.0
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: harbor-cache
+            operator: In
+            values:
+            - "true"   
 nginx:
   image:
     repository: goharbor/nginx-photon
     tag: v2.9.0
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: harbor-cache
+            operator: In
+            values:
+            - "true"   
 registry:
   registry:
     image:
       repository: goharbor/registry-photon
       tag: v2.9.0
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: harbor-cache
+            operator: In
+            values:
+            - "true"   
   controller:
     image:
       repository: goharbor/harbor-registryctl
       tag: v2.9.0
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: harbor-cache
+            operator: In
+            values:
+            - "true"   

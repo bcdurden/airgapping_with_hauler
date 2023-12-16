@@ -1,17 +1,17 @@
 rancher_version: v2.7.9
 cert_manager_version: v1.13.2
 hauler:
-  host: 10.10.0.5
+  host: 10.10.0.50
   store_path: /home/deathstar/hauler
   archive_path: /home/deathstar/hauler.tar.zst
 harbor:
   chart_version: 1.13.0
   core_url: harbor.myurl.com
   notary_url: notary.myurl.com
+  store_path: /home/deathstar/harbor-store
+  archive_path: /home/deathstar/harbor.tar.zst
+  affinity_node: fulcrum1
 additional_charts:
   - name: neuvector
     version: 102.0.5+up2.6.4
     repo_url: https://charts.rancher.io
-  - name: harbor
-    version: 1.13.0
-    repo_url: https://helm.goharbor.io
