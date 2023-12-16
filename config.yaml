@@ -2,16 +2,18 @@ rancher_version: v2.7.9
 cert_manager_version: v1.13.2
 hauler:
   host: 10.10.0.50
-  store_path: /home/deathstar/hauler
-  archive_path: /home/deathstar/hauler.tar.zst
-harbor:
-  chart_version: 1.13.0
-  core_url: harbor.myurl.com
-  notary_url: notary.myurl.com
-  store_path: /home/deathstar/harbor-store
-  archive_path: /home/deathstar/harbor.tar.zst
-  affinity_node: fulcrum1
-additional_charts:
+  store_path: /home/deathstar/hauler            #! this is just a local place to store cached store data
+  archive_path: /home/deathstar/hauler.tar.zst  #! this file will be one of the artifact copied into your airgap
+additional_charts:                              #! these can be any additional third party charts you wish to pull with Hauler
   - name: neuvector
     version: 102.0.5+up2.6.4
     repo_url: https://charts.rancher.io
+
+
+harbor:                                         #! most of these values should be easy to discern
+  chart_version: 1.13.0                         #! this version should stay put, it maps to the tarball stored in this repo
+  core_url: harbor.myurl.com                    #! before reaching the UI you will need to either make a DNS entry that maps this endpoint or edit /etc/hosts
+  notary_url: notary.myurl.com                  #! ditto ^^^
+  store_path: /home/deathstar/harbor-store      #! this is just a local place to store cached store data
+  archive_path: /home/deathstar/harbor.tar.zst  #! this file will be one of the artifact copied into your airgap
+  affinity_node: fulcrum1                       #! this should match one of your nodes within your K8S cluster
