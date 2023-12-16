@@ -71,6 +71,19 @@ configs:
 
 Ensure the [config.yaml](./config.yaml) properly defines your airgapped workstation's IP address as well as the ingress configuration and the location of your archive created in previous steps. Note that these DNS (harbor and notary) entries will need to point at your `Harvester` cluster nodes or you will need to have entries within `/etc/hosts` on your workstation and all Kubernetes nodes.
 
+## Harvester Prep
+If you are using `Harvester` as your target cluster, you cannot edit the `/etc/rancher/rke2/registries.yaml` file as the node filesystem is immutable. However, `Harvester` greatly simplifies this process by introducing a UI element for containerd config that will propogate to all nodes automatically. No ssh needed!
+
+Within Harvester, go to the Advanced->Settings page. There is a `containerd-registry` config item, click the `...` menu to the right and edit this setting. You'll need to add several settings here:
+* Within the Mirrors, add your workstation IP and 5000 port number (in my case it is `10.10.0.50:5000`) and set the endpoint to `http://10.10.0.50:5000`. 
+  * This setting ensures any cluster reference to the `10.10.0.50:5000` registry will be set to insecure (http) mode.
+* In configs, you will need two entries.
+  * The first entry is a base entry with your workstation IP and port 5000 added, `10.10.0.50:5000` in my case, every other field can be left blank.
+  * Click the `Add Config` button and fill the new one out with your harbor URL `harbor.myurl.com` is my example URL. Ensure the `InsecureSkipVerify` is set to true
+  * Keep in mind this last setting is NOT FOR PRODUCTION USE. It is only because we auto-generated a secret here. If we used a trusted cert instead, this entry would not be necessary.
+
+After those entries are done, click `Save` and wait a minute for Harvester to propogate the configuration change to the nodes. You are now finished with prepping Harvester!
+
 # Install
 Now the Install Step! You'll want to copy your archives onto your airgap workstation as well as this repo. Place them in the locations you've defined in the [config.yaml](./config.yaml) file or edit it to match their new location.
 
