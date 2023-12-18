@@ -1,0 +1,10 @@
+{
+    "project_name": "string",
+    "public": true,
+    "metadata": {
+      "public": "true",
+      "enable_content_trust": "false",
+      "enable_content_trust_cosign": "false"
+    },
+    "storage_limit": 0
+  }

@@ -162,7 +162,17 @@ configs:
 ```
 
 ## Install Rancher Images into Harbor
-TODO
+Once Harbor is up and running in your airgap environment, you can then push the rancher images to it. To do this use the `push-rancher` target. Once again, ensure your config.yaml is set correctly for your environment, the archive locations and Harbor URLs are crucial. The Makefile target will also create projects inside Harbor for you.
+
+```console
+deathstar@deathstar-F7BSC:~/airgapping_with_hauler$ make push-rancher
+===>Installing Rancher Images into your Airgap
+=>Creating Harbor Projects
+=>Pushing Images to Harbor
+9:44AM INF loading content from [/home/deathstar/hauler.tar.zst] to [/home/deathstar/hauler]
+```
+
+Once these images are pushed, you can proceed with your RKE2 installation for the initial Rancher cluster. Please ensure that you make an entry in `/etc/rancher/rke2/registries.yaml` that both sets your Harbor registry as the default one as well as marks it as insecure. The instructions for setting a private registry are in the [RKE2 docs](https://docs.rke2.io/install/airgap#private-registry-method)
 
 # TODO
 * grab install script from github

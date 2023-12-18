@@ -1,5 +1,5 @@
 SHELL:=/bin/bash
-REQUIRED_BINARIES := ytt yq hauler helm
+REQUIRED_BINARIES := ytt jq yq hauler helm
 WORKING_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 SCRIPT_DIR := ${WORKING_DIR}/scripts
 
@@ -11,6 +11,7 @@ HARBOR_CHART_VERSION := $(shell yq '.harbor.chart_version' ${CONFIG_FILE})
 HARBOR_URL := $(shell yq '.harbor.core_url' ${CONFIG_FILE})
 NOTARY_URL := $(shell yq '.harbor.notary_url' ${CONFIG_FILE})
 HARBOR_ARCHIVE := $(shell yq e '.harbor.archive_path' ${CONFIG_FILE})
+HAULER_ARCHIVE := $(shell yq e '.hauler.archive_path' ${CONFIG_FILE})
 AFFINITY_NODE_NAME := $(shell yq e '.harbor.affinity_node' ${CONFIG_FILE})
 
 check-tools: ## Check to make sure you have the right tools
@@ -75,7 +76,16 @@ install-harbor: check-tools
 	@pkill hauler
 	@rm -rf ${WORKING_DIR}/registry $(shell yq e '.harbor.store_path' ${CONFIG_FILE})
 
+push-rancher: check-tools
+	$(call colorecho, "===>Installing Rancher Images into your Airgap", 5)
+	$(call colorecho, "=>Creating Harbor Projects", 3)
+	@jq '.project_name = "rancher"' ${WORKING_DIR}/harbor/project_template.json | curl -sk -o /tmp/result -u "admin:Harbor12345" -H 'accept: application/json' -H 'Content-Type: application/json' --data-binary @- -X POST https://$(HARBOR_URL)/api/v2.0/projects
+	@jq '.project_name = "jetstack"' ${WORKING_DIR}/harbor/project_template.json | curl -sk -o /tmp/result -u "admin:Harbor12345" -H 'accept: application/json' -H 'Content-Type: application/json' --data-binary @- -X POST https://$(HARBOR_URL)/api/v2.0/projects
+	@jq '.project_name = "hauler"' ${WORKING_DIR}/harbor/project_template.json | curl -sk -o /tmp/result -u "admin:Harbor12345" -H 'accept: application/json' -H 'Content-Type: application/json' --data-binary @- -X POST https://$(HARBOR_URL)/api/v2.0/projects
 
+	$(call colorecho, "=>Pushing Images to Harbor", 3)
+	@hauler store load -s $(shell yq e '.hauler.store_path' ${CONFIG_FILE}) ${HAULER_ARCHIVE}
+	@hauler store copy -u admin -p Harbor12345 --insecure -s $(shell yq e '.hauler.store_path' ${CONFIG_FILE}) registry://${HARBOR_URL}
 
 define colorecho
 @tput setaf $2
