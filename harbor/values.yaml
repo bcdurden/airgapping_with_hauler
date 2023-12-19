@@ -160,15 +160,6 @@ registry:
     image:
       repository: goharbor/registry-photon
       tag: v2.9.0
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: harbor-cache
-            operator: In
-            values:
-            - "true"   
   controller:
     image:
       repository: goharbor/harbor-registryctl

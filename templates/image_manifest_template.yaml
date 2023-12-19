@@ -3,7 +3,7 @@
 apiVersion: content.hauler.cattle.io/v1alpha1
 kind: Images
 metadata:
-  name: hauler-fulcrum-images
+  name: hauler-images
 spec:
   images: 
   #@ for image in data.values.image_list.split():

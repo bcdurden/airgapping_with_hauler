@@ -38,6 +38,8 @@ package-rancher: check-tools
 	@helm repo add jetstack https://charts.jetstack.io &> /dev/null && helm repo update &> /dev/null
 	@helm template jetstack/cert-manager --version=$(CERT_MANAGER_VERSION) | grep 'image:' | sed 's/"//g'  | awk '{ print $$2 }' >> ${WORKING_DIR}/filtered_images.txt
 
+	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat filtered_images.txt)" > ${WORKING_DIR}/images.yaml
+
 	@echo -e "#@data/values\n---\n" > ${WORKING_DIR}/charts_values.yaml
 	@yq '.phony.charts = .additional_charts | .phony' ${CONFIG_FILE} >> ${WORKING_DIR}/charts_values.yaml
 	@ytt -f ${WORKING_DIR}/templates/chart_manifest_template.yaml -v cert_manager_version=$(CERT_MANAGER_VERSION) -v rancher_version=$(RANCHER_VERSION) -f ${WORKING_DIR}/charts_values.yaml > charts.yaml
@@ -53,7 +55,7 @@ package-rancher: check-tools
 
 package-harbor: check-tools
 	$(call colorecho, "===>Packaging Harbor", 5)
-	@helm template ${WORKING_DIR}/harbor/harbor-$(HARBOR_CHART_VERSION).tgz | grep 'image:' | sed 's/"//g' | tr -d ' ' | sed 's/image://g' | awk '{ print $2 }' > ${WORKING_DIR}/images.txt
+	@helm template ${WORKING_DIR}/harbor/harbor-$(HARBOR_CHART_VERSION).tgz | grep 'image:' | sed 's/"//g' | tr -d ' ' | sed 's/image://g' | sort --unique | awk '{ print $2 }' > ${WORKING_DIR}/images.txt
 	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat ${WORKING_DIR}/images.txt)" > ${WORKING_DIR}/images.yaml
 	@rm ${WORKING_DIR}/images.txt
 
