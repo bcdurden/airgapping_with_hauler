@@ -48,7 +48,7 @@ package-rancher: check-tools
 	@echo -e "---" >> ${WORKING_DIR}/manifest.yaml
 	@cat charts.yaml >> ${WORKING_DIR}/manifest.yaml
 
-	@hauler store sync -f ${WORKING_DIR}/manifest.yaml
+	@hauler store sync --platform linux/amd64 -f ${WORKING_DIR}/manifest.yaml
 	@rm ${WORKING_DIR}/images.yaml ${WORKING_DIR}/charts.yaml ${WORKING_DIR}/charts_values.yaml ${WORKING_DIR}/filtered_images.txt ${WORKING_DIR}/manifest.yaml || true
 
 	@hauler store save -f $(shell yq e '.hauler.archive_path' ${CONFIG_FILE})
@@ -59,7 +59,7 @@ package-harbor: check-tools
 	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat ${WORKING_DIR}/images.txt)" > ${WORKING_DIR}/images.yaml
 	@rm ${WORKING_DIR}/images.txt
 
-	@hauler store sync -s $(shell yq e '.harbor.store_path' $(CONFIG_FILE)) -f ${WORKING_DIR}/images.yaml
+	@hauler store sync -s $(shell yq e '.harbor.store_path' $(CONFIG_FILE)) --platform linux/amd64 -f ${WORKING_DIR}/images.yaml
 	@hauler store add chart -s $(shell yq e '.harbor.store_path' $(CONFIG_FILE)) ${WORKING_DIR}/harbor/harbor-${HARBOR_CHART_VERSION}.tgz
 	@hauler store save -s $(shell yq e '.harbor.store_path' $(CONFIG_FILE)) -f ${HARBOR_ARCHIVE}
 	@rm ${WORKING_DIR}/images.yaml
