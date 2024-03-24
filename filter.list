@@ -26,6 +26,7 @@ rancher/mirrored-kiali-kiali:v1.35.0
 rancher/mirrored-kiali-kiali:v1.55.0
 rancher/mirrored-kiali-kiali:v1.59.0
 rancher/k3s-upgrade:v1.23
+rancher/k3s-upgrade:v1.24
 rancher/hyperkube
 rancher/mirrored-cilium
 rancher/mirrored-library-traefik:2.6
@@ -34,15 +35,18 @@ rancher/mirrored-cloud-provider-vsphere
 rancher/mirrored-thanos-thanos:v0.28.0
 rancher/mirrored-thanosio-thanos:v0.21.1
 rancher/rke2-runtime:v1.23
+rancher/rke2-runtime:v1.24
 rancher/rke2-upgrade:v1.23
+rancher/rke2-upgrade:v1.24
 rancher/system-agent-installer-k3s:v1.21
 rancher/system-agent-installer-k3s:v1.22
 rancher/system-agent-installer-k3s:v1.23
-rancher/rke2-upgrade:v1.24
+rancher/system-agent-installer-k3s:v1.24
 rancher/nginx-ingress-controller:nginx-1.2.1
 rancher/system-agent-installer-rke2:v1.21
 rancher/system-agent-installer-rke2:v1.22
 rancher/system-agent-installer-rke2:v1.23
+rancher/system-agent-installer-rke2:v1.24
 rancher/thanosio-thanos:v0.15.0
 rancher/klipper-helm:v0.7
 hardened-calico:v3.22
