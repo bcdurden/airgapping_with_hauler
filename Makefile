@@ -6,7 +6,7 @@ SCRIPT_DIR := ${WORKING_DIR}/scripts
 # stack config and reference
 CONFIG_FILE := ${WORKING_DIR}/config.yaml
 RANCHER_VERSION := $(shell yq '.rancher_version' ${CONFIG_FILE})
-CARBIDE_VERSION := $(shell yq e .carbide.version ${STACK_CONFIG_FILE})
+CARBIDE_VERSION := $(shell yq e '.carbide.version' ${CONFIG_FILE})
 CERT_MANAGER_VERSION := $(shell yq '.cert_manager_version' ${CONFIG_FILE})
 HARBOR_CHART_VERSION := $(shell yq '.harbor.chart_version' ${CONFIG_FILE})
 HARBOR_URL := $(shell yq '.harbor.core_url' ${CONFIG_FILE})
@@ -22,6 +22,7 @@ check-tools: ## Check to make sure you have the right tools
 install:
 	$(call colorecho, "===>Installing Hauler and Dependencies", 5)
 	@curl -sfL https://get.hauler.dev | bash
+# Need a Darwin check here
 	@wget https://github.com/mikefarah/yq/releases/download/v4.30.1/yq_linux_amd64 \
 		sudo install yq_linux_amd64 /usr/local/bin/yq; rm yq_linux_amd64
 	@wget -O- https://carvel.dev/install.sh > install.sh \
@@ -39,14 +40,15 @@ package-rancher: check-tools
 	@helm repo add jetstack https://charts.jetstack.io &> /dev/null && helm repo update &> /dev/null
 	@helm template jetstack/cert-manager --version=$(CERT_MANAGER_VERSION) | grep 'image:' | sed 's/"//g'  | awk '{ print $$2 }' >> ${WORKING_DIR}/filtered_images.txt
 
-	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat filtered_images.txt)" > ${WORKING_DIR}/images.yaml
+	@cp ${WORKING_DIR}/filtered_images.txt ${WORKING_DIR}/images.txt
 
 # Carbide
-	@curl -sL https://github.com/rancherfederal/carbide-releases/releases/download/$(CARBIDE_VERSION)/carbide-images.txt > ${WORKING_DIR}/images.txt
-	@ytt -f ${BOOTSTRAP_DIR}/hauler/image_manifest_template.yaml -v image_list="$$(cat ${WORKING_DIR}/images.txt)" > ${WORKING_DIR}/images.yaml
+	@curl -sL https://github.com/rancherfederal/carbide-releases/releases/download/$(CARBIDE_VERSION)/carbide-images.txt >> ${WORKING_DIR}/images.txt
 
-	@hauler store add chart airgapped-docs --repo $(shell yq e '.carbide.chart_repo' $(STACK_CONFIG_FILE))  --version $(shell yq e '.carbide.airgapped_docs.version' $(STACK_CONFIG_FILE))
-	@hauler store add chart stigatron --repo $(shell yq e '.carbide.chart_repo' $(STACK_CONFIG_FILE))   --version $(shell yq e '.carbide.stigatron.version' $(STACK_CONFIG_FILE))
+	@hauler store add chart airgapped-docs --repo $(shell yq e '.carbide.chart_repo' $(CONFIG_FILE))  --version $(shell yq e '.carbide.airgapped_docs.version' $(CONFIG_FILE))
+	@hauler store add chart stigatron --repo $(shell yq e '.carbide.chart_repo' $(CONFIG_FILE))   --version $(shell yq e '.carbide.stigatron.version' $(CONFIG_FILE))
+
+	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat ${WORKING_DIR}/images.txt)" > ${WORKING_DIR}/images.yaml
 	@rm ${WORKING_DIR}/images.txt
 
 	@echo -e "#@data/values\n---\n" > ${WORKING_DIR}/charts_values.yaml
