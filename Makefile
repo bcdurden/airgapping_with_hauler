@@ -28,8 +28,9 @@ install:
 	@wget -O- https://carvel.dev/install.sh > install.sh \
 		sudo bash install.sh; rm install.sh
 
-package-rancher: check-tools
-	$(call colorecho, "===>Pulling all Dependent Images via Hauler", 5)
+rancher-manifest: 
+	$(call colorecho, "===>Generating Image and Chart manifest for Hauler", 5)
+
 	@curl -sL https://github.com/rancher/rancher/releases/download/$(RANCHER_VERSION)/rancher-images.txt > ${WORKING_DIR}/images.txt
 	@for line in $$(cat ${WORKING_DIR}/filter.list); do \
 		sed -ie "\|$$line|d" ${WORKING_DIR}/images.txt; \
@@ -39,29 +40,33 @@ package-rancher: check-tools
 
 	@helm repo add jetstack https://charts.jetstack.io &> /dev/null && helm repo update &> /dev/null
 	@helm template jetstack/cert-manager --version=$(CERT_MANAGER_VERSION) | grep 'image:' | sed 's/"//g'  | awk '{ print $$2 }' >> ${WORKING_DIR}/filtered_images.txt
+	 
 
 	@cp ${WORKING_DIR}/filtered_images.txt ${WORKING_DIR}/images.txt
 
 # Carbide
 	@curl -sL https://github.com/rancherfederal/carbide-releases/releases/download/$(CARBIDE_VERSION)/carbide-images.txt >> ${WORKING_DIR}/images.txt
 
-	@hauler store add chart airgapped-docs --repo $(shell yq e '.carbide.chart_repo' $(CONFIG_FILE))  --version $(shell yq e '.carbide.airgapped_docs.version' $(CONFIG_FILE))
-	@hauler store add chart stigatron --repo $(shell yq e '.carbide.chart_repo' $(CONFIG_FILE))   --version $(shell yq e '.carbide.stigatron.version' $(CONFIG_FILE))
+# @hauler store add chart airgapped-docs --repo $(shell yq e '.carbide.chart_repo' $(CONFIG_FILE))  --version $(shell yq e '.carbide.airgapped_docs.version' $(CONFIG_FILE))
+# @hauler store add chart stigatron --repo $(shell yq e '.carbide.chart_repo' $(CONFIG_FILE))   --version $(shell yq e '.carbide.stigatron.version' $(CONFIG_FILE))
 
-	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat ${WORKING_DIR}/images.txt)" > ${WORKING_DIR}/images.yaml
+	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat ${WORKING_DIR}/images.txt | sed 's/rancher\//rgcrprod.azurecr.us\/rancher\//g' | sed 's/quay.io\//rgcrprod.azurecr.us\//g')" > ${WORKING_DIR}/images.yaml
 	@rm ${WORKING_DIR}/images.txt
 
 	@echo -e "#@data/values\n---\n" > ${WORKING_DIR}/charts_values.yaml
 	@yq '.phony.charts = .additional_charts | .phony' ${CONFIG_FILE} >> ${WORKING_DIR}/charts_values.yaml
-	@ytt -f ${WORKING_DIR}/templates/chart_manifest_template.yaml -v cert_manager_version=$(CERT_MANAGER_VERSION) -v rancher_version=$(RANCHER_VERSION) -f ${WORKING_DIR}/charts_values.yaml > charts.yaml
+	@ytt -f ${WORKING_DIR}/templates/chart_manifest_template.yaml -v cert_manager_version=$(CERT_MANAGER_VERSION) -v rancher_version=$(RANCHER_VERSION) -v rancher_helm_repo=$(shell yq '.carbide.chart_repo' ${CONFIG_FILE}) -f ${WORKING_DIR}/charts_values.yaml > charts.yaml
 	@echo -e "---" > ${WORKING_DIR}/manifest.yaml
 	@cat images.yaml >> ${WORKING_DIR}/manifest.yaml
 	@echo -e "---" >> ${WORKING_DIR}/manifest.yaml
 	@cat charts.yaml >> ${WORKING_DIR}/manifest.yaml
 
-	@hauler store sync --platform linux/amd64 -f ${WORKING_DIR}/manifest.yaml
-	@rm ${WORKING_DIR}/images.yaml ${WORKING_DIR}/charts.yaml ${WORKING_DIR}/charts_values.yaml ${WORKING_DIR}/filtered_images.txt ${WORKING_DIR}/manifest.yaml || true
+	@rm ${WORKING_DIR}/images.yaml ${WORKING_DIR}/charts.yaml ${WORKING_DIR}/charts_values.yaml ${WORKING_DIR}/filtered_images.txt || true
 
+package-rancher: rancher-manifest check-tools
+	$(call colorecho, "===>Pulling all Dependent Images via Hauler", 5)
+	
+	@hauler store sync --platform linux/amd64 -f ${WORKING_DIR}/manifest.yaml && rm ${WORKING_DIR}/manifest.yaml
 	@hauler store save -f $(shell yq e '.hauler.archive_path' ${CONFIG_FILE})
 
 package-harbor: check-tools

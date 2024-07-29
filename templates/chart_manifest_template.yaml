@@ -11,7 +11,7 @@ spec:
       repoURL: https://charts.jetstack.io
       version: #@ data.values.cert_manager_version
     - name: rancher
-      repoURL: https://releases.rancher.com/server-charts/latest
+      repoURL: #@ data.values.rancher_helm_repo 
       version: #@ data.values.rancher_version
     #@ charts = data.values.charts
     #@ for chart in charts:

@@ -1,4 +1,4 @@
-rancher_version: v2.8.2
+rancher_version: v2.8.5
 cert_manager_version: v1.13.2
 hauler:
   host: 10.10.0.50
@@ -17,36 +17,12 @@ additional_charts:
   - name: loki-stack
     version: 2.10.2
     repo_url: https://grafana.github.io/helm-charts
-  - name: consul
-    version: 0.39.0
-    repo_url: https://helm.releases.hashicorp.com
-  - name: vault
-    version: 0.25.0
-    repo_url: https://helm.releases.hashicorp.com
-  - name: neuvector
-    version: 103.0.2+up2.7.3
-    repo_url: https://charts.rancher.io
-  - name: neuvector-crd
-    version: 103.0.2+up2.7.3
-    repo_url: https://charts.rancher.io
-  - name: rancher-cis-benchmark
-    version: 5.0.0
-    repo_url: https://charts.rancher.io
-  - name: rancher-cis-benchmark-crd
-    version: 5.0.0
-    repo_url: https://charts.rancher.io
-  - name: rancher-monitoring
-    version: 103.0.3+up45.31.1
-    repo_url: https://charts.rancher.io
-  - name: rancher-monitoring-crd
-    version: 103.0.3+up45.31.1
-    repo_url: https://charts.rancher.io
-  - name: epinio
-    version: 103.0.2+up1.10.0
-    repo_url: https://charts.rancher.io
-  - name: epinio-crd
-    version: 103.0.2+up1.10.0
-    repo_url: https://charts.rancher.io
+  - name: airgapped-docs
+    version: 0.1.47
+    repo_url: https://rancherfederal.github.io/carbide-charts
+  - name: stigatron
+    version: 0.2.5
+    repo_url: https://rancherfederal.github.io/carbide-charts
   - name: ui-plugin-operator
     version: 103.0.1+up0.2.1
     repo_url: https://charts.rancher.io
