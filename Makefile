@@ -34,6 +34,10 @@ install:
 	@wget -O- https://carvel.dev/install.sh > install.sh \
 		sudo bash install.sh; rm install.sh
 
+all:
+	$(MAKE) package-bootstrap
+	$(MAKE) package-rancher
+
 package-rancher: check-tools
 	$(call colorecho, "===>Pulling all Dependent Images via Hauler", 5)
 	@hauler login -u $(CARBIDE_USERNAME) -p $(CARBIDE_PASSWORD) rgcrprod.azurecr.us
@@ -75,7 +79,7 @@ package-bootstrap: check-tools
 	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat ${WORKING_DIR}/images.txt)" > ${WORKING_DIR}/images.yaml
 	@hauler store sync -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) --platform linux/amd64 -f ${WORKING_DIR}/images.yaml
 
-	@hauler store save -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) -f ${BOOTSTRAP_ARCHIVE}.tar.zst
+	@hauler store save -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) -f ${BOOTSTRAP_ARCHIVE}
 	@rm ${WORKING_DIR}/harbor-$(HARBOR_CHART_VERSION).tgz
 	@rm ${WORKING_DIR}/images.txt
 	@rm ${WORKING_DIR}/images.yaml

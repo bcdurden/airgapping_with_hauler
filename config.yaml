@@ -17,8 +17,9 @@ additional_charts:
   - name: keycloak
     version: 22.1.0
     repo_url: https://charts.bitnami.com/bitnami
-
-
+  - name: k10
+    version: 7.0.5
+    repo_url: https://charts.kasten.io
 
 bootstrap:                                         
   harbor_chart_version: 1.15.1       
