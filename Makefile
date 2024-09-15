@@ -49,6 +49,8 @@ package-rancher: check-tools
 		sed -ie "\|$$line|d" ${WORKING_DIR}/rancher-manifest.yaml; \
 	done
 	@rm rancher-manifest.yamle
+
+	@hauler store add chart rancher --repo https://rancherfederal.github.io/carbide-charts --version $(RANCHER_VERSION)
 	
 	@hauler store sync --platform linux/amd64 -f ${WORKING_DIR}/rancher-manifest.yaml && rm ${WORKING_DIR}/rancher-manifest.yaml
 	@hauler store save -f ${WORKING_DIR}/rancher.tar.zst
@@ -78,6 +80,21 @@ package-bootstrap: check-tools
 	@helm template ${WORKING_DIR}/harbor-$(HARBOR_CHART_VERSION).tgz | grep 'image:' | sed -e 's/^[ \t]*//' | sed 's/"//g' | sed "s/'//g" | sort --unique | awk '{ print $$2 }' > ${WORKING_DIR}/images.txt;
 	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat ${WORKING_DIR}/images.txt)" > ${WORKING_DIR}/images.yaml
 	@hauler store sync -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) --platform linux/amd64 -f ${WORKING_DIR}/images.yaml
+
+	$(call colorecho, "===>Pull Third Party images", 5)
+	@rm ${WORKING_DIR}/third_party_images.txt || true
+	@for chart in $$(yq .additional_charts[].name ${CONFIG_FILE}); do \
+		tput setaf 6; echo "===>Grabbing $$chart"; tput sgr0; \
+		REPO=$$(yq '.additional_charts[] | select(.name == "'$$chart'").repo_url' ${CONFIG_FILE}); \
+		VERSION=$$(yq '.additional_charts[] | select(.name == "'$$chart'").version' ${CONFIG_FILE}); \
+		helm pull $$chart --repo $$REPO --version $$VERSION; \
+		hauler store add chart -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) ${WORKING_DIR}/$$chart-$$VERSION.tgz; \
+		helm template ${WORKING_DIR}/$$chart-$$VERSION.tgz | grep 'image:' | sed -e 's/^[ \t]*//' | sed 's/"//g' | sed "s/'//g" | sort --unique | awk '{ print $$2 }' >> ${WORKING_DIR}/third_party_images.txt; \
+		if [[ $$chart == "k10" ]]; then echo "gcr.io/kasten-images/metric-sidecar:$$VERSION" >> ${WORKING_DIR}/third_party_images.txt;echo "gcr.io/kasten-images/datamover:$$VERSION" >> ${WORKING_DIR}/third_party_images.txt; fi \
+	done;
+	@cat ${WORKING_DIR}/third_party_images.txt | sort -u > /tmp/images.txt
+	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat/tmp/images.txt)" > ${WORKING_DIR}/third_party_images.yaml
+	@hauler store sync -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) --platform linux/amd64 -f ${WORKING_DIR}/third_party_images.yaml && rm ${WORKING_DIR}/third_party_images.yaml
 
 	@hauler store save -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) -f ${BOOTSTRAP_ARCHIVE}
 	@rm ${WORKING_DIR}/harbor-$(HARBOR_CHART_VERSION).tgz

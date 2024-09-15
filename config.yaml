@@ -8,9 +8,6 @@ harvester:
   version: v1.3.2
 
 additional_charts:
-  - name: rancher
-    repo_url: https://rancherfederal.github.io/carbide-charts
-    version: 2.9.1
   - name: gitea
     version: 10.3.0
     repo_url: https://dl.gitea.com/charts
