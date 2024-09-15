@@ -7,13 +7,19 @@ SCRIPT_DIR := ${WORKING_DIR}/scripts
 CONFIG_FILE := ${WORKING_DIR}/config.yaml
 RANCHER_VERSION := $(shell yq '.rancher_version' ${CONFIG_FILE})
 CARBIDE_VERSION := $(shell yq e '.carbide.version' ${CONFIG_FILE})
+HARVESTER_VERSION := $(shell yq e '.harvester.version' ${CONFIG_FILE})
 CERT_MANAGER_VERSION := $(shell yq '.cert_manager_version' ${CONFIG_FILE})
-HARBOR_CHART_VERSION := $(shell yq '.harbor.chart_version' ${CONFIG_FILE})
+HARBOR_CHART_VERSION := $(shell yq '.bootstrap.harbor_chart_version' ${CONFIG_FILE})
 HARBOR_URL := $(shell yq '.harbor.core_url' ${CONFIG_FILE})
 NOTARY_URL := $(shell yq '.harbor.notary_url' ${CONFIG_FILE})
-HARBOR_ARCHIVE := $(shell yq e '.harbor.archive_path' ${CONFIG_FILE})
+BOOTSTRAP_ARCHIVE := $(shell yq e '.bootstrap.archive_path' ${CONFIG_FILE})
 HAULER_ARCHIVE := $(shell yq e '.hauler.archive_path' ${CONFIG_FILE})
 AFFINITY_NODE_NAME := $(shell yq e '.harbor.affinity_node' ${CONFIG_FILE})
+
+# Carbide variables
+CARBIDE_CREDENTIALS = $$HOME/carbide_token.yaml
+CARBIDE_USERNAME := $(shell yq .token_id ${CARBIDE_CREDENTIALS})
+CARBIDE_PASSWORD := $(shell yq .token_password ${CARBIDE_CREDENTIALS})
 
 check-tools: ## Check to make sure you have the right tools
 	$(foreach exec,$(REQUIRED_BINARIES),\
@@ -28,56 +34,50 @@ install:
 	@wget -O- https://carvel.dev/install.sh > install.sh \
 		sudo bash install.sh; rm install.sh
 
-rancher-manifest: 
-	$(call colorecho, "===>Generating Image and Chart manifest for Hauler", 5)
-
-	@curl -sL https://github.com/rancher/rancher/releases/download/$(RANCHER_VERSION)/rancher-images.txt > ${WORKING_DIR}/images.txt
-	@for line in $$(cat ${WORKING_DIR}/filter.list); do \
-		sed -ie "\|$$line|d" ${WORKING_DIR}/images.txt; \
-	done
-	@mv ${WORKING_DIR}/images.txt ${WORKING_DIR}/filtered_images.txt
-	@rm ${WORKING_DIR}/images.txte || true
-
-	@helm repo add jetstack https://charts.jetstack.io &> /dev/null && helm repo update &> /dev/null
-	@helm template jetstack/cert-manager --version=$(CERT_MANAGER_VERSION) | grep 'image:' | sed 's/"//g'  | awk '{ print $$2 }' >> ${WORKING_DIR}/filtered_images.txt
-	 
-
-	@cp ${WORKING_DIR}/filtered_images.txt ${WORKING_DIR}/images.txt
-
-# Carbide
-	@curl -sL https://github.com/rancherfederal/carbide-releases/releases/download/$(CARBIDE_VERSION)/carbide-images.txt >> ${WORKING_DIR}/images.txt
-
-# @hauler store add chart airgapped-docs --repo $(shell yq e '.carbide.chart_repo' $(CONFIG_FILE))  --version $(shell yq e '.carbide.airgapped_docs.version' $(CONFIG_FILE))
-# @hauler store add chart stigatron --repo $(shell yq e '.carbide.chart_repo' $(CONFIG_FILE))   --version $(shell yq e '.carbide.stigatron.version' $(CONFIG_FILE))
-
-	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat ${WORKING_DIR}/images.txt | sed 's/rancher\//rgcrprod.azurecr.us\/rancher\//g' | sed 's/quay.io\//rgcrprod.azurecr.us\//g')" > ${WORKING_DIR}/images.yaml
-	@rm ${WORKING_DIR}/images.txt
-
-	@echo -e "#@data/values\n---\n" > ${WORKING_DIR}/charts_values.yaml
-	@yq '.phony.charts = .additional_charts | .phony' ${CONFIG_FILE} >> ${WORKING_DIR}/charts_values.yaml
-	@ytt -f ${WORKING_DIR}/templates/chart_manifest_template.yaml -v cert_manager_version=$(CERT_MANAGER_VERSION) -v rancher_version=$(RANCHER_VERSION) -v rancher_helm_repo=$(shell yq '.carbide.chart_repo' ${CONFIG_FILE}) -f ${WORKING_DIR}/charts_values.yaml > charts.yaml
-	@echo -e "---" > ${WORKING_DIR}/manifest.yaml
-	@cat images.yaml >> ${WORKING_DIR}/manifest.yaml
-	@echo -e "---" >> ${WORKING_DIR}/manifest.yaml
-	@cat charts.yaml >> ${WORKING_DIR}/manifest.yaml
-
-	@rm ${WORKING_DIR}/images.yaml ${WORKING_DIR}/charts.yaml ${WORKING_DIR}/charts_values.yaml ${WORKING_DIR}/filtered_images.txt || true
-
-package-rancher: rancher-manifest check-tools
+package-rancher: check-tools
 	$(call colorecho, "===>Pulling all Dependent Images via Hauler", 5)
+	@hauler login -u $(CARBIDE_USERNAME) -p $(CARBIDE_PASSWORD) rgcrprod.azurecr.us
+	@hauler store add image rgcrprod.azurecr.us/hauler/rancher-manifest.yaml:$(RANCHER_VERSION)
+	@hauler store extract hauler/rancher-manifest.yaml:$(RANCHER_VERSION)
+	@rm -rf store/
+
+	@for line in $$(cat ${WORKING_DIR}/filter.list); do \
+		sed -ie "\|$$line|d" ${WORKING_DIR}/rancher-manifest.yaml; \
+	done
+	@rm rancher-manifest.yamle
 	
-	@hauler store sync --platform linux/amd64 -f ${WORKING_DIR}/manifest.yaml && rm ${WORKING_DIR}/manifest.yaml
-	@hauler store save -f $(shell yq e '.hauler.archive_path' ${CONFIG_FILE})
+	@hauler store sync --platform linux/amd64 -f ${WORKING_DIR}/rancher-manifest.yaml && rm ${WORKING_DIR}/rancher-manifest.yaml
+	@hauler store save -f ${WORKING_DIR}/rancher.tar.zst
 
-package-harbor: check-tools
+package-bootstrap: check-tools
+	$(call colorecho, "===>Grabbing Harvester Images", 5)
+	@hauler store add file -s $(shell yq '.bootstrap.store_path' $(CONFIG_FILE)) https://releases.rancher.com/harvester/$(HARVESTER_VERSION)/harvester-$(HARVESTER_VERSION)-vmlinuz-amd64
+	@hauler store add file -s $(shell yq '.bootstrap.store_path' $(CONFIG_FILE)) https://releases.rancher.com/harvester/$(HARVESTER_VERSION)/harvester-$(HARVESTER_VERSION)-initrd-amd64
+	@hauler store add file -s $(shell yq '.bootstrap.store_path' $(CONFIG_FILE)) https://releases.rancher.com/harvester/$(HARVESTER_VERSION)/harvester-$(HARVESTER_VERSION)-rootfs-amd64.squashfs
+	@hauler store add file -s $(shell yq '.bootstrap.store_path' $(CONFIG_FILE)) https://releases.rancher.com/harvester/$(HARVESTER_VERSION)/harvester-$(HARVESTER_VERSION)-amd64.iso
+
+	$(call colorecho, "===>Grabbing CertManager Images", 5)
+	@hauler store add chart -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) cert-manager --repo https://charts.jetstack.io --version=$(CERT_MANAGER_VERSION)
+	@hauler store extract -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) hauler/cert-manager:$(CERT_MANAGER_VERSION) -o /tmp
+	@helm template /tmp/cert-manager-$(CERT_MANAGER_VERSION).tgz  | grep 'image:' | sed -e 's/^[ \t]*//' | sed 's/"//g' | sed "s/'//g" | sort --unique | awk '{ print $$2 }' > ${WORKING_DIR}/cert_images.txt;
+	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat ${WORKING_DIR}/cert_images.txt)" > ${WORKING_DIR}/cert_images.yaml
+	@hauler store sync -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) --platform linux/amd64 -f ${WORKING_DIR}/cert_images.yaml
+	@rm ${WORKING_DIR}/cert_images.yaml ${WORKING_DIR}/cert_images.txt || true
+
+	$(call colorecho, "===>Pulling RKE2 via Hauler", 5)
+	@hauler store add file -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) https://github.com/rancher/rke2/releases/download/v1.28.12-rc3-rke2r1/rke2.linux-amd64.tar.gz
+	@hauler store add file -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) https://get.rke2.io
+
 	$(call colorecho, "===>Packaging Harbor", 5)
-	@helm template ${WORKING_DIR}/harbor/harbor-$(HARBOR_CHART_VERSION).tgz | grep 'image:' | sed 's/"//g' | tr -d ' ' | sed 's/image://g' | sort --unique | awk '{ print $2 }' > ${WORKING_DIR}/images.txt
+	@helm pull harbor --repo https://helm.goharbor.io
+	@hauler store add chart -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) ${WORKING_DIR}/harbor-$(HARBOR_CHART_VERSION).tgz
+	@helm template ${WORKING_DIR}/harbor-$(HARBOR_CHART_VERSION).tgz | grep 'image:' | sed -e 's/^[ \t]*//' | sed 's/"//g' | sed "s/'//g" | sort --unique | awk '{ print $$2 }' > ${WORKING_DIR}/images.txt;
 	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat ${WORKING_DIR}/images.txt)" > ${WORKING_DIR}/images.yaml
-	@rm ${WORKING_DIR}/images.txt
+	@hauler store sync -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) --platform linux/amd64 -f ${WORKING_DIR}/images.yaml
 
-	@hauler store sync -s $(shell yq e '.harbor.store_path' $(CONFIG_FILE)) --platform linux/amd64 -f ${WORKING_DIR}/images.yaml
-	@hauler store add chart -s $(shell yq e '.harbor.store_path' $(CONFIG_FILE)) ${WORKING_DIR}/harbor/harbor-${HARBOR_CHART_VERSION}.tgz
-	@hauler store save -s $(shell yq e '.harbor.store_path' $(CONFIG_FILE)) -f ${HARBOR_ARCHIVE}
+	@hauler store save -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) -f ${BOOTSTRAP_ARCHIVE}.tar.zst
+	@rm ${WORKING_DIR}/harbor-$(HARBOR_CHART_VERSION).tgz
+	@rm ${WORKING_DIR}/images.txt
 	@rm ${WORKING_DIR}/images.yaml
 
 install-harbor: check-tools
@@ -85,14 +85,14 @@ install-harbor: check-tools
 	$(call colorecho, "=>Creating Affinity Label on your node", 5)
 	@kubectl label node $(AFFINITY_NODE_NAME) harbor-cache=true || true
 
-	@hauler store load -s $(shell yq e '.harbor.store_path' ${CONFIG_FILE}) ${HARBOR_ARCHIVE}
-	@hauler store serve -s $(shell yq e '.harbor.store_path' ${CONFIG_FILE}) &
+	@hauler store load -s $(shell yq e '.bootstrap.store_path' ${CONFIG_FILE}) ${BOOTSTRAP_ARCHIVE}
+	@hauler store serve -s $(shell yq e '.bootstrap.store_path' ${CONFIG_FILE}) &
 	@sleep 10
 	@sed 's/goharbor/$(shell yq e '.hauler.host' ${CONFIG_FILE}):5000\/goharbor/g' ${WORKING_DIR}/harbor/values.yaml | \
 	yq '.externalURL = "https://$(HARBOR_URL)"' | yq '.expose.ingress.hosts.core = "$(HARBOR_URL)"' | yq '.expose.ingress.hosts.notary = "$(HARBOR_URL)"' | \
 	helm upgrade --install harbor oci://localhost:5000/hauler/harbor --version $(HARBOR_CHART_VERSION) -n harbor --values - --create-namespace --wait
 	@pkill hauler
-	@rm -rf ${WORKING_DIR}/registry $(shell yq e '.harbor.store_path' ${CONFIG_FILE})
+	@rm -rf ${WORKING_DIR}/registry $(shell yq e '.bootstrap.store_path' ${CONFIG_FILE})
 
 push-rancher: check-tools
 	$(call colorecho, "===>Installing Rancher Images into your Airgap", 5)

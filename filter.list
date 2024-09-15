@@ -1,10 +1,10 @@
+windows
 rancher/aks-operator
 rancher/eks-operator
 rancher/gke-operator
 rancher/hardened-kubernetes:v1.23
 rancher/hardened-flannel:v0.17
 rancher/hardened-flannel:v0.19
-rancher/mirrored-epinio
 rancher/mirrored-openpolicyagent-gatekeeper
 rancher/mirrored-sigwindowstools
 rancher/istio-installer:1.14.3-rancher1
@@ -26,7 +26,6 @@ rancher/mirrored-kiali-kiali:v1.35.0
 rancher/mirrored-kiali-kiali:v1.55.0
 rancher/mirrored-kiali-kiali:v1.59.0
 rancher/k3s-upgrade:v1.23
-rancher/k3s-upgrade:v1.24
 rancher/hyperkube
 rancher/mirrored-cilium
 rancher/mirrored-library-traefik:2.6
@@ -38,12 +37,12 @@ rancher/rke2-runtime:v1.23
 rancher/rke2-runtime:v1.24
 rancher/rke2-upgrade:v1.23
 rancher/rke2-upgrade:v1.24
-rancher/rke2-upgrade:v1.25
 rancher/system-agent-installer-k3s:v1.21
 rancher/system-agent-installer-k3s:v1.22
 rancher/system-agent-installer-k3s:v1.23
 rancher/system-agent-installer-k3s:v1.24
 rancher/system-agent-installer-k3s:v1.25
+rancher/rke2-upgrade:v1.24
 rancher/nginx-ingress-controller:nginx-1.2.1
 rancher/system-agent-installer-rke2:v1.21
 rancher/system-agent-installer-rke2:v1.22

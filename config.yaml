@@ -1,40 +1,26 @@
-rancher_version: v2.8.5
+rancher_version: v2.9.1
 cert_manager_version: v1.13.2
 hauler:
   host: 10.10.0.50
-  store_path: /home/deathstar/hauler            #! this is just a local place to store cached store data
-  archive_path: /home/deathstar/hauler.tar.zst  #! this file will be one of the artifact copied into your airgap
-
-carbide:
-  version: 0.1.1
-  chart_repo: https://rancherfederal.github.io/carbide-charts
-  airgapped_docs:
-    version: 0.1.47
-  stigatron:
-    version: 0.2.5
+  store_path: /tmp/hauler            #! this is just a local place to store cached store data
+  archive_path: $PWD/hauler.tar.zst  #! this file will be one of the artifact copied into your airgap
+harvester:
+  version: v1.3.2
 
 additional_charts:
-  - name: loki-stack
-    version: 2.10.2
-    repo_url: https://grafana.github.io/helm-charts
-  - name: airgapped-docs
-    version: 0.1.47
+  - name: rancher
     repo_url: https://rancherfederal.github.io/carbide-charts
-  - name: stigatron
-    version: 0.2.5
-    repo_url: https://rancherfederal.github.io/carbide-charts
-  - name: ui-plugin-operator
-    version: 103.0.1+up0.2.1
-    repo_url: https://charts.rancher.io
-  - name: ui-plugin-operator-crd
-    version: 103.0.1+up0.2.1
-    repo_url: https://charts.rancher.io
+    version: 2.9.1
+  - name: gitea
+    version: 10.3.0
+    repo_url: https://dl.gitea.com/charts
+  - name: keycloak
+    version: 22.1.0
+    repo_url: https://charts.bitnami.com/bitnami
 
 
-harbor:                                         #! most of these values should be easy to discern
-  chart_version: 1.13.0                         #! this version should stay put, it maps to the tarball stored in this repo
-  core_url: harbor.sienarfleet.systems                    #! before reaching the UI you will need to either make a DNS entry that maps this endpoint or edit /etc/hosts
-  notary_url: notary.sienarfleet.systems                  #! ditto ^^^
-  store_path: /home/deathstar/harbor-store      #! this is just a local place to store cached store data
-  archive_path: /home/deathstar/harbor.tar.zst  #! this file will be one of the artifact copied into your airgap
-  affinity_node: fulcrum1                       #! this should match one of your nodes within your K8S cluster
+
+bootstrap:                                         
+  harbor_chart_version: 1.15.1       
+  store_path: /tmp/bootstrap
+  archive_path: $PWD/bootstrap.tar.zst
