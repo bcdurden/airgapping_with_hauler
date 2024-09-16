@@ -71,7 +71,7 @@ package-bootstrap: check-tools
 	@rm ${WORKING_DIR}/cert_images.yaml ${WORKING_DIR}/cert_images.txt || true
 
 	$(call colorecho, "===>Pulling RKE2 via Hauler", 5)
-	@hauler store add file -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) https://github.com/rancher/rke2/releases/download/v1.28.12-rc3-rke2r1/rke2.linux-amd64.tar.gz
+	@hauler store add file -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) https://github.com/rancher/rke2/releases/download/v1.28.12+rke2r1/rke2.linux-amd64.tar.gz
 	@hauler store add file -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) https://get.rke2.io
 
 	$(call colorecho, "===>Packaging Harbor", 5)
@@ -93,7 +93,7 @@ package-bootstrap: check-tools
 		if [[ $$chart == "k10" ]]; then echo "gcr.io/kasten-images/metric-sidecar:$$VERSION" >> ${WORKING_DIR}/third_party_images.txt;echo "gcr.io/kasten-images/datamover:$$VERSION" >> ${WORKING_DIR}/third_party_images.txt; fi \
 	done;
 	@cat ${WORKING_DIR}/third_party_images.txt | sort -u > /tmp/images.txt
-	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat/tmp/images.txt)" > ${WORKING_DIR}/third_party_images.yaml
+	@ytt -f ${WORKING_DIR}/templates/image_manifest_template.yaml -v image_list="$$(cat /tmp/images.txt)" > ${WORKING_DIR}/third_party_images.yaml
 	@hauler store sync -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) --platform linux/amd64 -f ${WORKING_DIR}/third_party_images.yaml && rm ${WORKING_DIR}/third_party_images.yaml
 
 	@hauler store save -s $(shell yq e '.bootstrap.store_path' $(CONFIG_FILE)) -f ${BOOTSTRAP_ARCHIVE}
